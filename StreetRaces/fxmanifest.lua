@@ -9,18 +9,27 @@ dependencies {
 }
 
 files {
-	'data/StreetRaces_saveData.txt',
+	-- 'data/StreetRaces_saveData.txt',
+	'data/StreetRaces_saveData.json',
+}
+
+shared_scripts {
+    'config/config.lua',
 }
 
 client_scripts {
     '@ScaleformUI_Lua/ScaleformUI.lua',
-    "config.lua",
-    -- "races_cl.lua",
-    "race_gui.lua",
+    -- "config.lua",
+    -- I don't think this one is in use anymore? I'll remove it later
+    -- "client/races_cl.lua",
+    -- "race_gui.lua",
+    "client/race_gui.lua",
 }
 
 server_scripts {
-    "config.lua",
-    "port_sv.lua",
-    "races_sv.lua",
+    -- "config.lua",
+    -- "port_sv.lua",
+    -- "races_sv.lua",
+    "server/port_sv.lua",
+    "server/races_sv.lua",
 }

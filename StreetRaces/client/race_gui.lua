@@ -105,8 +105,8 @@ function CreateMenu()
     local startRaceItem = UIMenuItem.New("Start race", "Start a loaded race.")
     vehicleMenu:AddItem(startRaceItem)
 
-    local cancelRaceItem = UIMenuItem.New("Cancel race", "Cacnel the current race.")
-    vehicleMenu:AddItem(cancelRaceItem)
+    -- local cancelRaceItem = UIMenuItem.New("Cancel race", "Cacnel the current race.")
+    -- vehicleMenu:AddItem(cancelRaceItem)
 
     local createRaceItem = UIMenuItem.New("Create race", "Create a new race.")
     vehicleMenu:AddItem(createRaceItem)
@@ -127,8 +127,8 @@ function CreateMenu()
     local listRaceItem = UIMenuItem.New("List races", "Lists races stored in the file.")
     vehicleMenu:AddItem(listRaceItem)
 
-    local leaveRaceItem = UIMenuItem.New("Leave race", "Leave the current race.")
-    vehicleMenu:AddItem(leaveRaceItem)
+    -- local leaveRaceItem = UIMenuItem.New("Leave race", "Leave the current race.")
+    -- vehicleMenu:AddItem(leaveRaceItem)
 
     -- local totalLaps = UIMenuIte
 
@@ -140,7 +140,7 @@ function CreateMenu()
     --     end
     -- end
 
-    
+
     -- For some reason the IsWaypointActive check seems to work for the count down but the checkpoints don't load up.
     -- The recordedCheckpoints check is doing nothing
     startRaceItem.Activated = function(sender, item, index)
@@ -157,7 +157,7 @@ function CreateMenu()
 
                 -- Todo Set this to get user input from a list.
                 -- local TotalLaps = ""
-                
+
 
                 -- Uncomment below when I want to work on this again.
 
@@ -177,17 +177,16 @@ function CreateMenu()
                     local startDelay = 5000 --config_cl.joinDuration
                     -- local TotalLaps = 2 --config_cl.totalLaps
                     local TotalLaps = config_cl.totalLaps
-                    
+
 
                     if #recordedCheckpoints > 0 then
                         -- Ok this is the problem, nothing below this is printing or doing anything
                         -- It's something to do with recordedCheckpoints missing or something.
                         -- notify("Debug line") -- Doesn't print with a race loaded in.
-                        
+
                         -- Create race using custom checkpoints
-                        
                         TriggerServerEvent('StreetRaces:createRace_sv', amount, startDelay, startCoords, TotalLaps, recordedCheckpoints)
-                    
+
                         -- For some reason the IsWaypointActive check seems to work fine.
                     elseif IsWaypointActive() then
                         -- Create race using waypoint as the only checkpoint
@@ -207,11 +206,12 @@ function CreateMenu()
         end
     end
 
-    cancelRaceItem.Activated = function(sender, item, index)
-        if item == cancelRaceItem then
-            TriggerServerEvent('StreetRaces:cancelRace_sv')
-        end
-    end
+    -- This one doesn't seem to do anything either.
+    -- cancelRaceItem.Activated = function(sender, item, index)
+    --     if item == cancelRaceItem then
+    --         TriggerServerEvent('StreetRaces:cancelRace_sv')
+    --     end
+    -- end
 
     -- I fixed this by removing the example text/making it blank
     -- Todo make this get the data from the json file and list it off, instead of needing keyboard input
@@ -227,6 +227,7 @@ function CreateMenu()
         end
     end
 
+    -- Save the race results, uses keyboard input
     saveRaceItem.Activated = function(sender, item, index)
         if item == saveRaceItem then
             local result = KeyboardInput("Save Race", "", 20)
@@ -239,6 +240,7 @@ function CreateMenu()
     -- Todo make this get the data from the json file and list it off, instead of needing keyboard input
     loadRaceItem.Activated = function(sender, item, index)
         if item == loadRaceItem then
+
             local raceName = KeyboardInput("Race to load", "", 20)
             TriggerServerEvent('StreetRaces:loadRace_sv', raceName)
             -- Move vehicle routing bucket test
@@ -251,21 +253,31 @@ function CreateMenu()
             --     -- This says invalid entity id, I wonder how to fix it.
             --     TriggerServerEvent('StreetRaces:moveVehicle_sv', entityFromNetId, 2)
             -- end
-            
+
         end
     end
 
-    leaveRaceItem.Activated = function(sender, item, index)
-        if item == leaveRaceItem then
-        -- If player is part of a race, clean up map and send leave event to server
-            if raceStatus.state == RACE_STATE_JOINED or raceStatus.state == RACE_STATE_RACING then
-                cleanupRace()
-                TriggerServerEvent('StreetRaces:leaveRace_sv', raceStatus.index)
-            end
-        end
-    end
+    -- Leave the current race, I added a confirmation box to this.
+    -- Was this not in use? The unload race worked but this did nothing
+    -- leaveRaceItem.Activated = function(sender, item, index)
+    --     if item == leaveRaceItem then
+    --     -- If player is part of a race, clean up map and send leave event to server
+    --         if raceStatus.state == RACE_STATE_JOINED or raceStatus.state == RACE_STATE_RACING then
 
-    -- Wow this actually worked
+    --             -- Added confirmation to this, now leaving a race requires the user to input Y to confirm. 
+    --             local result = KeyboardInput("Confirm (Type Y to confirm)", "", 20)
+
+    --             if result == "Y" or result == "y" then
+    --                 cleanupRace()
+    --                 TriggerServerEvent('StreetRaces:leaveRace_sv', raceStatus.index)
+    --             end
+    --         end
+    --     end
+    -- end
+
+    -----
+    -- List the races in a notification, probably not a good idea for a big list of them.
+    -----
     listRaceItem.Activated = function(sender, item, index)
         if item == listRaceItem then
             TriggerServerEvent('StreetRaces:listRaces_sv')
@@ -273,29 +285,43 @@ function CreateMenu()
         end
     end
 
+
+    -----
+    -- Create a race
     -- This one seems to be working now.
     -- A marker can be set with this using "E", instead of clicking on the map
-
-    -- TODO Setup this to where it won't wipe the current race if RACE_STATE_RECORDING is active.
+    -- Well I made a confirm button for this so it shouldn't wipe the races without confirmation here.
+    -----
     createRaceItem.Activated = function(sender, item, index)
         if item == createRaceItem then
-            if raceStatus.state == RACE_STATE_RECORDING then
-                notify("You are currently recording a race! Unload it first.")
-            else
+            -- Added confirmation to this, now creating a race requires the user to input Y to confirm. 
+            local result = KeyboardInput("Confirm (Type Y to confirm)", "", 20)
+
+            if result == "Y" or result == "y" then
                 SetWaypointOff()
                 cleanupRecording()
                 raceStatus.state = RACE_STATE_RECORDING
-                notify("Record active: Set markers on the map for waypoints. Or press E/DPAD-Right to place them at your position.")
+                notify("Record active: Set markers on the map for waypoints. Or press ~b~E~w~/~b~DPAD-Right~w~ to place them.")
             end
         end
     end
 
+    -- Unload the race
     unloadRaceItem.Activated = function(sender, item, index)
         if item == unloadRaceItem then
-            -- I had to change it to trigger event.
-            TriggerEvent("StreetRaces:removeRace_cl", raceStatus.index)
-            TriggerServerEvent('StreetRaces:unloadRace_sv', raceStatus.index)
-            
+
+            -- Added confirmation to this, now unloading a race requires the user to input Y to confirm.
+            -- This only works if the user is in a race, recording or anything.
+            -- If the state is none it won't do anything.
+            if raceStatus.state ~= RACE_STATE_NONE then
+                local result = KeyboardInput("Confirm (Type Y to confirm)", "", 20)
+
+                if result == "Y" or result == "y" then
+                    TriggerEvent("StreetRaces:removeRace_cl", raceStatus.index)
+                    TriggerServerEvent('StreetRaces:unloadRace_sv', raceStatus.index)
+                    notify("Race ~b~unloaded~w~.")
+                end
+            end
         end
     end
 
@@ -311,13 +337,14 @@ end
 Citizen.CreateThread(function()
     while true do
         Wait(0)
+        -- Keyboard
         -- F5 key, draw the main menu
         if IsControlJustPressed(0, 166) and not MenuHandler:IsAnyMenuOpen() and GetLastInputMethod(0) then
             CreateMenu()
         end
 
         -- TODO This sometimes activates and sometimes doesn't, try to fix that.
-        -- Controller, Need to setup key
+        -- Controller
         -- RB + DPAD UP
         if IsControlJustPressed(1, 44) and IsControlJustPressed(1, 172)
          and not MenuHandler:IsAnyMenuOpen()
@@ -336,12 +363,12 @@ AddEventHandler("StreetRaces:unloadRace_cl", function(index)
     if raceStatus.state == RACE_STATE_JOINED or raceStatus.state == RACE_STATE_RACING then
         raceStatus.index = index
         raceStatus.state = RACE_STATE_NONE
-    
+
         -- This doesn't even print
         notify("Test.")
         cleanupRecording()
         cleanupRace()
-    
+
         -- for index1, checkpoint in pairs(recordedCheckpoints) do
         --     checkpoint.blip = AddBlipForCoord(checkpoint.coords.x, checkpoint.coords.y, checkpoint.coords.z)
         --     RemoveBlip(checkpoint.blip)
@@ -354,20 +381,21 @@ AddEventHandler("StreetRaces:unloadRace_cl", function(index)
 end)
 
 -- https://forum.cfx.re/t/use-displayonscreenkeyboard-properly/51143/2
-function KeyboardInput(TextEntry, ExampleText, MaxStringLenght)
+function KeyboardInput(TextEntry, InputText, MaxStringLength)
 
 	-- TextEntry		-->	The Text above the typing field in the black square
 	-- ExampleText		-->	An Example Text, what it should say in the typing field
 	-- MaxStringLenght	-->	Maximum String Lenght
 
 	AddTextEntry('FMMC_KEY_TIP1', TextEntry) --Sets the Text above the typing field in the black square
-	DisplayOnscreenKeyboard(1, "FMMC_KEY_TIP1", "", ExampleText, "", "", "", MaxStringLenght) --Actually calls the Keyboard Input
+	-- DisplayOnscreenKeyboard(1, "FMMC_KEY_TIP1", "", ExampleText, "", "", "", MaxStringLenght) --Actually calls the Keyboard Input
+	DisplayOnscreenKeyboard(1, "FMMC_KEY_TIP1", "", InputText, "", "", "", MaxStringLength) --Actually calls the Keyboard Input
 	blockinput = true --Blocks new input while typing if **blockinput** is used
 
 	while UpdateOnscreenKeyboard() ~= 1 and UpdateOnscreenKeyboard() ~= 2 do --While typing is not aborted and not finished, this loop waits
 		Citizen.Wait(0)
 	end
-		
+
 	if UpdateOnscreenKeyboard() ~= 2 then
 		local result = GetOnscreenKeyboardResult() --Gets the result of the typing
 		Citizen.Wait(500) --Little Time Delay, so the Keyboard won't open again if you press enter to finish the typing
@@ -477,7 +505,7 @@ AddEventHandler("StreetRaces:removeRace_cl", function(index)
         -- Decrement raceStatus.index to match new index after removing race
         raceStatus.index = raceStatus.index - 1
     end
-    
+
     -- Remove race from table
     -- TODO Is this needed? These values don't seem to be in use, at least the races one doesn't
     table.remove(races, index)
@@ -492,23 +520,26 @@ end)
 
 function Draw3DText(x, y, z, text)
     -- Check if coords are visible and get 2D screen coords
+
+    local gameplayCoords = GetFinalRenderedCamCoord()
+
     local onScreen, _x, _y = World3dToScreen2d(x, y, z)
     if onScreen then
         -- Calculate text scale to use
-        local dist = GetDistanceBetweenCoords(GetGameplayCamCoords(), x, y, z, 1)
+        local dist = GetDistanceBetweenCoords(gameplayCoords.x, gameplayCoords.y, gameplayCoords.z, x, y, z, true)
         local scale = 1.8*(1/dist)*(1/GetGameplayCamFov())*100
 
         -- Draw text on screen
         SetTextScale(scale, scale)
         SetTextFont(4)
-        SetTextProportional(1)
+        SetTextProportional(true)
         SetTextColour(255, 255, 255, 255)
-        SetTextDropShadow(0, 0, 0, 0,255)
+        SetTextDropShadow()
         SetTextDropShadow()
         SetTextEdge(4, 0, 0, 0, 255)
         SetTextOutline()
         SetTextEntry("STRING")
-        SetTextCentre(1)
+        SetTextCentre(true)
         AddTextComponentString(text)
         DrawText(_x, _y)
     end
@@ -518,10 +549,10 @@ end
 function Draw2DText(x, y, text, scale)
     -- Draw text on screen
     SetTextFont(4)
-    SetTextProportional(7)
+    SetTextProportional(true)
     SetTextScale(scale, scale)
     SetTextColour(255, 255, 255, 255)
-    SetTextDropShadow(0, 0, 0, 0,255)
+    SetTextDropShadow()
     SetTextDropShadow()
     SetTextEdge(4, 0, 0, 0, 255)
     SetTextOutline()
@@ -648,7 +679,7 @@ Citizen.CreateThread(function()
                     -- Add checkpoint to array
                     table.insert(recordedCheckpoints, {blip = blip, coords = coords})
                 end
-				PlaySoundFrontend(-1, "RACE_PLACED", "HUD_AWARDS")
+				PlaySoundFrontend(-1, "RACE_PLACED", "HUD_AWARDS", true)
 			end
         else
             -- Not recording, do cleanup
@@ -669,7 +700,9 @@ Citizen.CreateThread(function()
             -- if IsWaypointActive() then
 
             local waypointCoords = GetBlipInfoIdCoord(GetFirstBlipInfoId(8))
-            local _, coords = GetClosestVehicleNode(waypointCoords.x, waypointCoords.y, waypointCoords.z, 1)
+            -- local _, coords = GetClosestVehicleNode(waypointCoords.x, waypointCoords.y, waypointCoords.z, 1)
+            -- https://nativedb.dotindustries.dev/gta5/natives/0x240A18690AE96513?search=vehiclenode
+            local _, coords = GetClosestVehicleNode(waypointCoords.x, waypointCoords.y, waypointCoords.z, 1, 1077936128, 0)
             -- local blip = AddBlipForCoord(coords.x, coords.y, coords.z)
 
 
@@ -680,7 +713,7 @@ Citizen.CreateThread(function()
                         RemoveBlip(checkpoint.blip)
                             table.remove(recordedCheckpoints, index)
                                 coords = nil
-                
+
                                 -- Update existing checkpoint blips
                                 for i = index, #recordedCheckpoints do
                                         ShowNumberOnBlip(recordedCheckpoints[i].blip, i)
@@ -699,7 +732,7 @@ Citizen.CreateThread(function()
             --     SetBlipAsShortRange(checkpoint.blip, true)
             --     ShowNumberOnBlip(checkpoint.blip, index)
             -- end
-        
+
             -- Clear waypoint and add route for first checkpoint blip
             SetWaypointOff()
             SetBlipRoute(checkpoints[1].blip, true)
@@ -710,6 +743,7 @@ Citizen.CreateThread(function()
     end
 end)
 
+-- TODO Refactor this, move some of these into other threads or functions.
 -- Main thread
 Citizen.CreateThread(function()
     -- Loop forever and update every frame
@@ -746,9 +780,12 @@ Citizen.CreateThread(function()
                     SetBlipRoute(checkpoint.blip, true)
                     SetBlipRouteColour(checkpoint.blip, config_cl.checkpointBlipColor)
                 else
+                    -----
                     -- Check player distance from current checkpoint
+                    -----
                     local checkpoint = race.checkpoints[raceStatus.checkpoint]
                     if GetDistanceBetweenCoords(position.x, position.y, position.z, checkpoint.coords.x, checkpoint.coords.y, 0, false) < config_cl.checkpointProximity then
+
                         -- Passed the checkpoint, delete map blip and checkpoint (only on last lap)
 						if raceStatus.currentLap == race.laps then
 							RemoveBlip(checkpoint.blip)
@@ -759,48 +796,63 @@ Citizen.CreateThread(function()
                         end
 						-- update total checkpoints count and notify server
 						raceStatus.totalCheckpoints = raceStatus.totalCheckpoints + 1
-						                        
+
+                        -----
                         -- Check if at finish line
+                        -----
                         if raceStatus.checkpoint == #(race.checkpoints) then
 							if raceStatus.currentLap == (race.laps) then					
 								-- Play finish line sound
-								PlaySoundFrontend(-1, "ScreenFlash", "WastedSounds")
+								PlaySoundFrontend(-1, "ScreenFlash", "WastedSounds", true)
 
 								-- Send finish event to server
 								local currentTime = (GetGameTimer() - race.startTime)
 								TriggerServerEvent('StreetRaces:finishedRace_sv', raceStatus.index, currentTime)
-								
+
+                                -----
 								-- Reset state
-								raceStatus.index = 0
+								-----
+                                raceStatus.index = 0
 								raceStatus.state = RACE_STATE_NONE
 							else
-								-- add another lap
-								PlaySoundFrontend(-1, "RACE_PLACED", "HUD_AWARDS")
+                                -----
+								-- Add another lap
+								-----
+                                PlaySoundFrontend(-1, "RACE_PLACED", "HUD_AWARDS", true)
 								raceStatus.currentLap = raceStatus.currentLap + 1
 								raceStatus.checkpoint = 1
 								local checkpoint = race.checkpoints[raceStatus.checkpoint]
 
+                                -----
 								-- Create checkpoint when enabled
-								if config_cl.checkpointRadius > 0 then
+								-----
+                                if config_cl.checkpointRadius > 0 then
 									checkpointType = RACE_CHECKPOINT_TYPE
 									checkpoint.checkpoint = CreateCheckpoint(checkpointType, checkpoint.coords.x,  checkpoint.coords.y, checkpoint.coords.z, 0, 0, 0, config_cl.checkpointRadius, 255, 255, 0, 127, 0)
 									SetCheckpointCylinderHeight(checkpoint.checkpoint, config_cl.checkpointHeight, config_cl.checkpointHeight, config_cl.checkpointRadius)
 								end
 
+                                -----
 								-- Set blip route for navigation
-								SetBlipRoute(checkpoint.blip, true)
-								SetBlipRouteColour(checkpoint.blip, config_cl.checkpointBlipColor)							
+								-----
+                                SetBlipRoute(checkpoint.blip, true)
+								SetBlipRouteColour(checkpoint.blip, config_cl.checkpointBlipColor)						
 							end
                         else
+                            -----
                             -- Play checkpoint sound
-                            PlaySoundFrontend(-1, "RACE_PLACED", "HUD_AWARDS")
+                            -----
+                            PlaySoundFrontend(-1, "RACE_PLACED", "HUD_AWARDS", true)
 
                             -- Increment checkpoint counter and get next checkpoint
                             raceStatus.checkpoint = raceStatus.checkpoint + 1
                             nextCheckpoint = race.checkpoints[raceStatus.checkpoint]
 
+                            -----
                             -- Create checkpoint when enabled
+                            -----
                             if config_cl.checkpointRadius > 0 then
+
 								if raceStatus.currentLap == race.laps then
 									if raceStatus.checkpoint == #race.checkpoints then
 										checkpointType = RACE_CHECKPOINT_FINISH_TYPE
@@ -810,18 +862,23 @@ Citizen.CreateThread(function()
 								else
 									checkpointType = RACE_CHECKPOINT_TYPE
 								end
+
                                 nextCheckpoint.checkpoint = CreateCheckpoint(checkpointType, nextCheckpoint.coords.x,  nextCheckpoint.coords.y, nextCheckpoint.coords.z, 0, 0, 0, config_cl.checkpointRadius, 255, 255, 0, 127, 0)
                                 SetCheckpointCylinderHeight(nextCheckpoint.checkpoint, config_cl.checkpointHeight, config_cl.checkpointHeight, config_cl.checkpointRadius)
                             end
 
+                            -----
                             -- Set blip route for navigation
+                            -----
                             SetBlipRoute(nextCheckpoint.blip, true)
                             SetBlipRouteColour(nextCheckpoint.blip, config_cl.checkpointBlipColor)
                         end
                     end
                 end
 
+                -----
                 -- Draw HUD when it's enabled
+                -----
                 if config_cl.hudEnabled then
                     -- Draw time and checkpoint HUD above minimap
                     local timeSeconds = (GetGameTimer() - race.startTime)/1000.0
@@ -832,12 +889,15 @@ Citizen.CreateThread(function()
                     local checkpointDist = math.floor(GetDistanceBetweenCoords(position.x, position.y, position.z, checkpoint.coords.x, checkpoint.coords.y, 0, false))
                     Draw2DText(config_cl.hudPosition.x, config_cl.hudPosition.y + 0.04, ("~y~CHECKPOINT %d/%d (%dm) | LAP %d/%d | POS %d/%d"):format(raceStatus.checkpoint, #race.checkpoints, checkpointDist, raceStatus.currentLap, race.laps, raceStatus.myPosition, raceStatus.totalPlayers), 0.5)
                 end
+            -----
             -- Player has joined a race
+            -----
             elseif raceStatus.state == RACE_STATE_JOINED then
                 -- Check countdown to race start
                 local race = races[raceStatus.index]
                 local currentTime = GetGameTimer()
                 local count = race.startTime - currentTime
+
                 if count <= 0 then
                     -- Race started, set racing state and unfreeze vehicle position
 					oldpos = GetEntityCoords(PlayerPedId())
@@ -847,17 +907,21 @@ Citizen.CreateThread(function()
                     raceStatus.checkpoint = 0
 					raceStatus.currentLap = 1
                     FreezeEntityPosition(vehicle, false)
+
                 elseif count <= config_cl.freezeDuration then
                     -- Display countdown text and freeze vehicle position
                     Draw2DText(0.5, 0.4, ("~y~%d"):format(math.ceil(count/1000.0)), 3.0)
                     FreezeEntityPosition(vehicle, true)
                 else
                     -- Draw 3D start time and join text
-                    local temp, zCoord = GetGroundZFor_3dCoord(race.startCoords.x, race.startCoords.y, 9999.9, 1)
+                    -- local temp, zCoord = GetGroundZFor_3dCoord(race.startCoords.x, race.startCoords.y, 9999.9, 1)
+                    local temp, zCoord = GetGroundZFor_3dCoord(race.startCoords.x, race.startCoords.y, 9999.9, true)
                     Draw3DText(race.startCoords.x, race.startCoords.y, zCoord+1.0, ("Race for ~g~$%d~w~ starting in ~y~%d~w~s"):format(race.amount, math.ceil(count/1000.0)))
                     Draw3DText(race.startCoords.x, race.startCoords.y, zCoord+0.80, "Joined")
                 end
+            -----
             -- Player is not in a race
+            -----    
             else
                 -- Loop through all races
                 for index, race in pairs(races) do
@@ -871,7 +935,8 @@ Citizen.CreateThread(function()
                         local count = math.ceil((race.startTime - currentTime)/1000.0)
                         local temp, zCoord = GetGroundZFor_3dCoord(race.startCoords.x, race.startCoords.y, 9999.9, false)
                         Draw3DText(race.startCoords.x, race.startCoords.y, zCoord+1.0, ("Race for ~g~$%d~w~ starting in ~y~%d~w~s"):format(race.amount, count))
-                        Draw3DText(race.startCoords.x, race.startCoords.y, zCoord+0.80, "Press [~g~E~w~] to join")
+                        -- Draw3DText(race.startCoords.x, race.startCoords.y, zCoord+0.80, "Press [~g~E~w~] to join")
+                        Draw3DText(race.startCoords.x, race.startCoords.y, zCoord+0.80, "Press [~g~E/Right DPad~w~] to join")
 
                         -- Check if player enters the race and send join event to server
                         if IsControlJustReleased(1, config_cl.joinKeybind) then
@@ -880,7 +945,7 @@ Citizen.CreateThread(function()
                         end
                     end
                 end
-            end  
+            end
         end
     end
 end)

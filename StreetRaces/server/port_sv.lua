@@ -1,7 +1,11 @@
 -- Saved player data and file
 
+-- TODO Setup this to work by listing the races from the json instead of manually typing the names.
+
 local playersData = nil
-local playersDataFile = GetResourcePath("StreetRaces") .. "./data/StreetRaces_saveData.txt"
+-- Why did I have this as txt?
+-- local playersDataFile = GetResourcePath("StreetRaces") .. "./data/StreetRaces_saveData.txt"
+local playersDataFile = GetResourcePath("StreetRaces") .. "./data/StreetRaces_saveData.json"
 -- Test this later (If the resource is ever renamed, the above would no longer work):
 -- local playersDataFile = GetResourcePath(GetCurrentResourceName()) .. "./data/StreetRaces_saveData.txt"
 
@@ -62,7 +66,7 @@ function notifyPlayer(source, msg)
 end
 
 
-
+-- TODO Make this create the file if it doesn't already exist
 -- Helper function for loading saved player data
 function loadPlayerData(source)
     -- Load data from file if not already initialized

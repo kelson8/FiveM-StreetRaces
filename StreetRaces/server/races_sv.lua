@@ -1,8 +1,13 @@
 ---@diagnostic disable: param-type-mismatch
+
+-----
 -- Server side array of active races
+-----
 local races = {}
 
+-----
 -- Cleanup thread
+-----
 Citizen.CreateThread(function()
     -- Loop forever and check status every 100ms
     while true do
@@ -35,8 +40,8 @@ Citizen.CreateThread(function()
 end)
 
 -- TODO Test this in the race resouce
--- RegisterNetEvent("ch_test:setEntityRtr")
--- AddEventHandler("ch_test:setEntityRtr", function(entityId, routingBucket)
+-- RegisterNetEvent("StreetRaces:setEntityRtr")
+-- AddEventHandler("StreetRaces:setEntityRtr", function(entityId, routingBucket)
 --     -- local NetId = NetworkGetEntityFromNetworkId(tonumber(args[1]))
 --     local netId = NetworkGetEntityFromNetworkId(entityId)
 --     -- local routingBucket = tonumber(args[2])
@@ -47,12 +52,18 @@ end)
 --     -- end
 -- end)
 
+-----
+-- Server event for moving player and vehicle to routing bucket
+-- TODO Set this one up.
+-----
 RegisterNetEvent("StreetRaces:moveVehicle_sv")
 AddEventHandler("StreetRaces:moveVehicle_sv", function(vehicle, routingBucket)
     SetEntityRoutingBucket(vehicle, routingBucket)
 end)
 
+-----
 -- Server event for creating a race
+-----
 RegisterNetEvent("StreetRaces:createRace_sv")
 AddEventHandler("StreetRaces:createRace_sv", function(amount, startDelay, startCoords, TotalLaps, checkpoints, finishTimeout)
     -- Add fields to race struct and add to races array
@@ -77,7 +88,9 @@ AddEventHandler("StreetRaces:createRace_sv", function(amount, startDelay, startC
     TriggerClientEvent("StreetRaces:createRace_cl", -1, index, amount, startDelay, startCoords, TotalLaps, checkpoints)
 end)
 
+-----
 -- Server event for canceling a race
+-----
 RegisterNetEvent("StreetRaces:cancelRace_sv")
 AddEventHandler("StreetRaces:cancelRace_sv", function()
     -- Iterate through races
@@ -103,7 +116,9 @@ AddEventHandler("StreetRaces:cancelRace_sv", function()
     end
 end)
 
+-----
 -- Server event for joining a race
+-----
 RegisterNetEvent("StreetRaces:joinRace_sv")
 AddEventHandler("StreetRaces:joinRace_sv", function(index)
     -- Validate and deduct player money
@@ -128,7 +143,9 @@ AddEventHandler("StreetRaces:joinRace_sv", function(index)
     end
 end)
 
+-----
 -- Server event for leaving a race
+-----
 RegisterNetEvent("StreetRaces:leaveRace_sv")
 AddEventHandler("StreetRaces:leaveRace_sv", function(index)
     -- Validate player is part of the race
@@ -143,7 +160,9 @@ AddEventHandler("StreetRaces:leaveRace_sv", function(index)
     end
 end)
 
+-----
 -- Server event for finishing a race
+-----
 RegisterNetEvent("StreetRaces:finishedRace_sv")
 AddEventHandler("StreetRaces:finishedRace_sv", function(index, time)
     -- Check player was part of the race
@@ -166,7 +185,7 @@ AddEventHandler("StreetRaces:finishedRace_sv", function(index, time)
                 -- Send winner notification to players
                 for _, pSource in pairs(players) do
                     if pSource == source then
-                        
+
                         local msg = ("You won [%02d:%06.3f]"):format(timeMinutes, timeSeconds)
                         notifyPlayer(pSource, msg)
                         -- Set the player back to the normal routing bucket.
@@ -197,7 +216,9 @@ AddEventHandler("StreetRaces:finishedRace_sv", function(index, time)
     end
 end)
 
+-----
 -- Server event for saving recorded checkpoints as a race
+-----
 RegisterNetEvent("StreetRaces:saveRace_sv")
 AddEventHandler("StreetRaces:saveRace_sv", function(name, checkpoints)
     -- Cleanup data so it can be serialized
@@ -220,7 +241,9 @@ AddEventHandler("StreetRaces:saveRace_sv", function(name, checkpoints)
     notifyPlayer(source, msg)
 end)
 
+-----
 -- Server event for deleting recorded race
+-----
 RegisterNetEvent("StreetRaces:deleteRace_sv")
 AddEventHandler("StreetRaces:deleteRace_sv", function(name)
     -- Get saved player races
@@ -241,7 +264,9 @@ AddEventHandler("StreetRaces:deleteRace_sv", function(name)
     end
 end)
 
+-----
 -- Server event for listing recorded races
+-----
 RegisterNetEvent("StreetRaces:listRaces_sv")
 AddEventHandler("StreetRaces:listRaces_sv", function()
     -- Get saved player races and iterate through saved races
@@ -262,7 +287,9 @@ AddEventHandler("StreetRaces:listRaces_sv", function()
     notifyPlayer(source, msg)
 end)
 
+-----
 -- Server event for loaded recorded race
+-----
 RegisterNetEvent("StreetRaces:loadRace_sv")
 AddEventHandler("StreetRaces:loadRace_sv", function(name)
     -- Get saved player races and load race
@@ -291,7 +318,6 @@ AddEventHandler("StreetRaces:loadRace_sv", function(name)
         end
         -- TODO Set vehicle back too routing bucket 2
 
-        
         -- Send notification to player
         -- local msg = "Loaded " .. name
         -- notifyPlayer(source, msg)
@@ -302,8 +328,9 @@ AddEventHandler("StreetRaces:loadRace_sv", function(name)
 end)
 
 
-
+-----
 -- Server event for unloading race
+-----
 RegisterNetEvent("StreetRaces:unloadRace_sv")
 AddEventHandler("StreetRaces:unloadRace_sv", function(name)
     -- Get saved player races and load race
@@ -342,14 +369,16 @@ AddEventHandler("StreetRaces:unloadRace_sv", function(name)
     -- end
 end)
 
+-----
 -- Server event for updating positions
+-----
 RegisterNetEvent("StreetRaces:updatecheckpoitcount_sv")
 AddEventHandler("StreetRaces:updatecheckpoitcount_sv", function(index,amount)
 	-- update the checkpoints value for player
 	local race = races[index]
 	race.playersCheckpoints[source] = amount
-	
-	-- complile a list of positions and send back to client
+
+	-- Complile a list of positions and send back to client
 	local counter = 0
 	for k,v in spairs(race.playersCheckpoints, function(t,a,b) return t[b] < t[a] end) do
 		counter = counter + 1
@@ -361,9 +390,14 @@ AddEventHandler("StreetRaces:updatecheckpoitcount_sv", function(index,amount)
 			TriggerClientEvent("StreetRaces:updatePos", playerID, position, allPlayers)
 		end
 	end
-	
+
 end)
 
+-----
+-- Something to do with the value keys in here
+-- Seems to only run here: StreetRaces:updatecheckpoitcount_sv
+-- This is something to do with updating the positions in the above event.
+-----
 function spairs(t, order)
     -- collect the keys
     local keys = {}

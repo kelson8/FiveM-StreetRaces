@@ -14,9 +14,6 @@ function notify(msg)
     DrawNotification(true, false)
 end
 
--- Todo Try and add a gui to this or add this to my menu that I am working on,
--- Be sure to credit the original author.
-
 -- Races and race status
 local races = {}
 local raceStatus = {
