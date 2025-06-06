@@ -1,4 +1,3 @@
----@diagnostic disable: param-type-mismatch
 -- Server side array of active races
 local races = {}
 
@@ -34,30 +33,11 @@ Citizen.CreateThread(function()
     end
 end)
 
--- TODO Test this in the race resouce
--- RegisterNetEvent("ch_test:setEntityRtr")
--- AddEventHandler("ch_test:setEntityRtr", function(entityId, routingBucket)
---     -- local NetId = NetworkGetEntityFromNetworkId(tonumber(args[1]))
---     local netId = NetworkGetEntityFromNetworkId(entityId)
---     -- local routingBucket = tonumber(args[2])
-
---     -- if args[1] and args[2] ~= nil then
---         SetEntityRoutingBucket(netId, routingBucket)
---         sendMessage(source, ("You have set the routing bucket of %s to %s"):format(netId, routingBucket))
---     -- end
--- end)
-
-RegisterNetEvent("StreetRaces:moveVehicle_sv")
-AddEventHandler("StreetRaces:moveVehicle_sv", function(vehicle, routingBucket)
-    SetEntityRoutingBucket(vehicle, routingBucket)
-end)
-
 -- Server event for creating a race
 RegisterNetEvent("StreetRaces:createRace_sv")
-AddEventHandler("StreetRaces:createRace_sv", function(amount, startDelay, startCoords, TotalLaps, checkpoints, finishTimeout)
+AddEventHandler("StreetRaces:createRace_sv", function(amount, startDelay, startCoords, checkpoints, finishTimeout)
     -- Add fields to race struct and add to races array
     local race = {
-		laps = TotalLaps,
         owner = source,
         amount = amount,
         startTime = GetGameTimer() + startDelay,
@@ -66,15 +46,13 @@ AddEventHandler("StreetRaces:createRace_sv", function(amount, startDelay, startC
         finishTimeout = config_sv.finishTimeout,
         players = {},
         prize = 0,
-        finishTime = 0,
-		playersCheckpoints = {},
-		totalPlayers = 0
+        finishTime = 0
     }
     table.insert(races, race)
 
     -- Send race data to all clients
     local index = #races
-    TriggerClientEvent("StreetRaces:createRace_cl", -1, index, amount, startDelay, startCoords, TotalLaps, checkpoints)
+    TriggerClientEvent("StreetRaces:createRace_cl", -1, index, amount, startDelay, startCoords, checkpoints)
 end)
 
 -- Server event for canceling a race
@@ -109,7 +87,6 @@ AddEventHandler("StreetRaces:joinRace_sv", function(index)
     -- Validate and deduct player money
     local race = races[index]
     local amount = race.amount
-	local laps = race.laps
     local playerMoney = getMoney(source)
     if playerMoney >= amount then
         -- Deduct money from player and add to prize pool
@@ -118,8 +95,6 @@ AddEventHandler("StreetRaces:joinRace_sv", function(index)
 
         -- Add player to race and send join event back to client
         table.insert(races[index].players, source)
-		races[index].playersCheckpoints[source] = 0
-		races[index].totalPlayers = races[index].totalPlayers + 1
         TriggerClientEvent("StreetRaces:joinedRace_cl", source, index)
     else
         -- Insufficient money, send notification back to client
@@ -166,14 +141,8 @@ AddEventHandler("StreetRaces:finishedRace_sv", function(index, time)
                 -- Send winner notification to players
                 for _, pSource in pairs(players) do
                     if pSource == source then
-                        
                         local msg = ("You won [%02d:%06.3f]"):format(timeMinutes, timeSeconds)
                         notifyPlayer(pSource, msg)
-                        -- Set the player back to the normal routing bucket.
-                        if config_cl.noPedLobby then
-                            SetPlayerRoutingBucket(source, 0)
-                        end
-                        -- TODO Set vehicle back to normal routing bucket
                     elseif config_sv.notifyOfWinner then
                         local msg = ("%s won [%02d:%06.3f]"):format(getName(source), timeMinutes, timeSeconds)
                         notifyPlayer(pSource, msg)
@@ -183,11 +152,6 @@ AddEventHandler("StreetRaces:finishedRace_sv", function(index, time)
                 -- Loser, send notification to only the player
                 local msg = ("You lost [%02d:%06.3f]"):format(timeMinutes, timeSeconds)
                 notifyPlayer(source, msg)
-                -- Set the player back to the normal routing bucket.
-                -- TODO Set vehicle back to normal routing bucket
-                if config_cl.noPedLobby then
-                    SetPlayerRoutingBucket(source, 0)
-                end
             end
 
             -- Remove player form list and break
@@ -206,10 +170,6 @@ AddEventHandler("StreetRaces:saveRace_sv", function(name, checkpoints)
         checkpoint.coords = {x = checkpoint.coords.x, y = checkpoint.coords.y, z = checkpoint.coords.z}
     end
 
-    -- Try to make this save to a json file with a race name.
-    -- Something like this:
-    -- MyRace1: points {
-        -- 1: {X: 22, Y: 22, Z:22}}
     -- Get saved player races, add race and save
     local playerRaces = loadPlayerData(source)
     playerRaces[name] = checkpoints
@@ -274,116 +234,11 @@ AddEventHandler("StreetRaces:loadRace_sv", function(name)
         -- Send race data to client
         TriggerClientEvent("StreetRaces:loadRace_cl", source, race)
 
-        -- Set the players routing bucket to 2, which has population disabled.
-        -- TODO Bring players vehicle with them.
-        -- if IsPedInAnyVehicle(source, false) then
-        --     local vehicle = GetVehiclePedIsIn(source, false)
-        --     SetEntityRoutingBucket(vehicle, 2)
-        --     SetPlayerRoutingBucket(source, 2)
-        -- else
-        --     SetPlayerRoutingBucket(source, 2)
-        -- end
-        -- SetPlayerRoutingBucket(source, 2)
-
-        -- TODO Test this config option later, I would like to keep this as a config option.
-        if config_cl.noPedLobby then
-            SetPlayerRoutingBucket(source, 2)
-        end
-        -- TODO Set vehicle back too routing bucket 2
-
-        
         -- Send notification to player
-        -- local msg = "Loaded " .. name
-        -- notifyPlayer(source, msg)
+        local msg = "Loaded " .. name
+        notifyPlayer(source, msg)
     else
         local msg = "No race found with name " .. name
         notifyPlayer(source, msg)
     end
 end)
-
-
-
--- Server event for unloading race
-RegisterNetEvent("StreetRaces:unloadRace_sv")
-AddEventHandler("StreetRaces:unloadRace_sv", function(name)
-    -- Get saved player races and load race
-    -- local playerRaces = loadPlayerData(source)
-    -- local race = playerRaces[name]
-
-    -- If race was found send it to the client
-    -- if race ~= nil then
-        -- Send race data to client
-        -- TriggerClientEvent("StreetRaces:unloadRace_cl", source, race)
-
-        -- Set players routing bucket back to normal.
-        -- TODO Bring players vehicle with them.
-
-        -- local ped = GetPlayerPed(source)
-        -- -- This doesn't work server side.
-        -- if IsPedInAnyVehicle(ped, false) then
-        --     local vehicle = GetVehiclePedIsIn(ped, false)
-        --     SetEntityRoutingBucket(vehicle, 0)
-        --     SetPlayerRoutingBucket(source, 0)
-        -- else
-        --     SetPlayerRoutingBucket(source, 0)
-        -- end
-
-        if config_cl.noPedLobby then
-            SetPlayerRoutingBucket(source, 0)
-        end
-
-
-        -- Send notification to player
-        -- local msg = "Loaded " .. name
-        -- notifyPlayer(source, msg)
-    -- else
-    --     local msg = "No race found with name " .. name
-    --     notifyPlayer(source, msg)
-    -- end
-end)
-
--- Server event for updating positions
-RegisterNetEvent("StreetRaces:updatecheckpoitcount_sv")
-AddEventHandler("StreetRaces:updatecheckpoitcount_sv", function(index,amount)
-	-- update the checkpoints value for player
-	local race = races[index]
-	race.playersCheckpoints[source] = amount
-	
-	-- complile a list of positions and send back to client
-	local counter = 0
-	for k,v in spairs(race.playersCheckpoints, function(t,a,b) return t[b] < t[a] end) do
-		counter = counter + 1
-		local allPlayers = race.totalPlayers
-		if k == source then
-			local playerID = k
-			local position = counter
-			-- send position (counter) to player
-			TriggerClientEvent("StreetRaces:updatePos", playerID, position, allPlayers)
-		end
-	end
-	
-end)
-
-function spairs(t, order)
-    -- collect the keys
-    local keys = {}
-    for k in pairs(t) do keys[#keys+1] = k end
-
-    -- if order function given, sort by it by passing the table and keys a, b,
-    -- otherwise just sort the keys 
-    if order then
-        table.sort(keys, function(a,b) return order(t, a, b) end)
-    else
-        table.sort(keys)
-    end
-
-    -- return the iterator function
-    local i = 0
-    return function()
-        i = i + 1
-        if keys[i] then
-            return keys[i], t[keys[i]]
-        end
-    end
-end
-
