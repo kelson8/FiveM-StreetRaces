@@ -29,6 +29,11 @@ Keybind to bring up menu (F5) {I will try to add a config for this later on.}
 
 I disabled the races_cl.lua in the fxmanifest and moved all the functions over to my gui, it started working once I did that.
 
+New permissions:
+* StreetRaces.create_race - Allow users to create/save races
+* StreetRaces.delete_race - Allow users to delete races
+* StreetRaces.cancel_race - Allow users to cancel_race races
+
 ## Requirements
 This project requires ScaleformUI, which can be downloaded from here
 * GitHub: https://github.com/manups4e/ScaleformUI/tree/master

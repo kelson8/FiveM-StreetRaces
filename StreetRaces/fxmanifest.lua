@@ -23,6 +23,8 @@ client_scripts {
     -- I don't think this one is in use anymore? I'll remove it later
     -- "client/races_cl.lua",
     -- "race_gui.lua",
+    "client/events.lua",
+    "client/functions.lua",
     "client/race_gui.lua",
 }
 
