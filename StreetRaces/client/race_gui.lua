@@ -322,8 +322,11 @@ function CreateMenu()
 
                 if result == "Y" or result == "y" then
                     -- This is the event that is supposed to trigger
-                    -- Since I moved my events around, this no longer runs when unloading from RACE_STATE_LOADED
+                    -- This is an old event
                     -- TriggerEvent("StreetRaces:removeRace_cl", raceStatus.index)
+                    
+
+                    -- This seems to work fine now for unloading races when in RACE_STATE_LOADED and RACE_STATE_RECORDING now.
                     TriggerEvent("StreetRaces:unloadRace_cl", raceStatus.index)
 
                     -- TriggerServerEvent('StreetRaces:leaveRace_sv', raceStatus.index)
@@ -332,7 +335,6 @@ function CreateMenu()
 
                     -- What is the point of this event? It doesn't do anything.
                     -- TriggerServerEvent('StreetRaces:unloadRace_sv', raceStatus.index)
-                    -- notify("Race ~b~unloaded~w~.")
                 end
             end
         end
@@ -346,7 +348,10 @@ function CreateMenu()
     mainMenu:Visible(true)
 end
 
+-----
 -- Draw the menu
+-- TODO Add config for this part
+-----
 Citizen.CreateThread(function()
     while true do
         Wait(0)
@@ -374,7 +379,11 @@ RegisterNetEvent("StreetRaces:unloadRace_cl")
 AddEventHandler("StreetRaces:unloadRace_cl", function(index)
     if raceStatus.state == RACE_STATE_JOINED
         or raceStatus.state == RACE_STATE_RACING
-        or raceStatus.state == RACE_STATE_LOADED then
+        or raceStatus.state == RACE_STATE_LOADED
+        -- Oh no wonder this wouldn't let me remove these when recording.
+        -- I actually had it excluded here.. Oops...
+        -- I only found out because creating a race would wipe the markers.
+        or raceStatus.state == RACE_STATE_RECORDING then
         raceStatus.index = index
         raceStatus.state = RACE_STATE_NONE
 
@@ -400,7 +409,9 @@ end)
 
 -----
 
+-----
 -- Client event for when a race is created
+-----
 RegisterNetEvent("StreetRaces:createRace_cl")
 AddEventHandler("StreetRaces:createRace_cl", function(index, amount, startDelay, startCoords, TotalLaps, checkpoints)
     -- Create race struct and add to array
@@ -418,8 +429,10 @@ AddEventHandler("StreetRaces:createRace_cl", function(index, amount, startDelay,
     races[index] = race
 end)
 
--- Client event for loading a race
--- This seems to work now for unloading the race.
+-----
+-- Client event for loading a race with no marker placing
+-- This seems to work now for unloading the race also.
+-----
 RegisterNetEvent("StreetRaces:loadRace_cl")
 AddEventHandler("StreetRaces:loadRace_cl", function(checkpoints)
     -- Cleanup recording, save checkpoints and set state to recording
@@ -427,11 +440,7 @@ AddEventHandler("StreetRaces:loadRace_cl", function(checkpoints)
     recordedCheckpoints = checkpoints
 
     -- Random index number for this, above 0
-    raceStatus.index = 1
-    -- Race state loaded is not implemented yet, this should disable the recording when loading a race once I figure it out.
-    -- raceStatus.state = RACE_STATE_RECORDING
-    -- TODO Test this.
-    -- Well this seems to work but breaks race recording, I will need to fix the 'loadRecordingRace_cl' event to work.
+    -- raceStatus.index = 1
     raceStatus.state = RACE_STATE_LOADED
     raceStatus.currentLap = 1
     -- Add map blips
@@ -448,14 +457,18 @@ AddEventHandler("StreetRaces:loadRace_cl", function(checkpoints)
     SetBlipRouteColour(checkpoints[1].blip, config_cl.checkpointBlipColor)
 end)
 
--- TODO Figure out how to implement this
+
+-----
+-- Load a race in recording mode, for now only active when creating races
+-- TODO Add an edit mode for existing races.
+-- This seems to work fine now and can be unloaded.
+-----
 RegisterNetEvent('StreetRaces:loadRecordingRace_cl')
 AddEventHandler('StreetRaces:loadRecordingRace_cl', function()
     -- Cleanup recording, save checkpoints and set state to recording
     cleanupRecording()
     recordedCheckpoints = checkpoints
 
-    -- Race state loaded is not implemented yet, this should disable the recording when loading a race once I figure it out.
     raceStatus.state = RACE_STATE_RECORDING
     raceStatus.currentLap = 1
     -- Add map blips
@@ -473,8 +486,9 @@ AddEventHandler('StreetRaces:loadRecordingRace_cl', function()
 
 end)
 
-
+-----
 -- Client event for when a race is joined
+-----
 RegisterNetEvent("StreetRaces:joinedRace_cl")
 AddEventHandler("StreetRaces:joinedRace_cl", function(index)
     -- Set index and state to joined
@@ -497,11 +511,12 @@ AddEventHandler("StreetRaces:joinedRace_cl", function(index)
     SetBlipRouteColour(checkpoints[1].blip, config_cl.checkpointBlipColor)
 end)
 
-
+-----
 -- Client event for when a race is removed
 -- This seems to work fine now, more testing may be needed.
 -- I added the index to the parameters in the menu item.
--- 3-28-2024 @ 5:35AM
+-- This seems to be what is nil now.
+-----
 RegisterNetEvent("StreetRaces:removeRace_cl")
 AddEventHandler("StreetRaces:removeRace_cl", function(index)
     -- Check if index matches active race
@@ -527,7 +542,9 @@ AddEventHandler("StreetRaces:removeRace_cl", function(index)
     table.remove(races, index)
 end)
 
+-----
 -- Client event for updated position
+-----
 RegisterNetEvent("StreetRaces:updatePos")
 AddEventHandler("StreetRaces:updatePos", function(position, allPlayers)
     raceStatus.myPosition = position
@@ -669,12 +686,9 @@ Citizen.CreateThread(function()
                 PlaySoundFrontend(-1, "RACE_PLACED", "HUD_AWARDS", true)
             end
 
-            -- Don't allow markers to be placed
-            -- Well this just seems to break the recording of races.
-            -- elseif raceStatus.state == RACE_STATE_LOADED then
-
+            -- This just breaks the markers showing up when loading a race
             -- else
-            -- Not recording, do cleanup
+            -- -- Not recording, do cleanup
             -- cleanupRecording()
         end
     end
@@ -732,8 +746,9 @@ Citizen.CreateThread(function()
                 SetBlipRouteColour(checkpoints[1].blip, config_cl.checkpointBlipColor)
 
                 -- end
-            else
-                cleanupRace()
+                -- This breaks it
+            -- else
+                -- cleanupRace()
             end
         end
     end
